@@ -20,6 +20,7 @@ class Crawler_NewsCN():
             "urls": []
         }
 
+
     def  __search_topic(self, topic: str):
         self.driver.get(BASE_URL)
         WebDriverWait(self.driver, 10).until(EC.title_contains("Xinhua"))
@@ -36,6 +37,7 @@ class Crawler_NewsCN():
         self.driver.close()
         self.driver.switch_to.window(self.driver.window_handles[0])
         WebDriverWait(self.driver, 10).until(EC.title_contains("Xinhua research"))
+
 
     def __select_blog_in_search_page(self):
         raw_blogs = self.driver.find_element(By.CLASS_NAME, "content").get_attribute("innerHTML")
@@ -55,45 +57,71 @@ class Crawler_NewsCN():
         if len(self.selected_blogs["urls"]) < MAX_BLOG_LIMIT:
             # go to next page
             next_page_btn = self.driver.find_element(By.CLASS_NAME, "ant-pagination-next")
-            if next_page_btn.get_attribute("aria-disabled") != "true":
+            # if next_page_btn.get_attribute("aria-disabled") != "true":
+            if next_page_btn.is_enabled():
                 next_page_btn.click()
                 self.__select_blog_in_search_page()
         else:
             self.selected_blogs["titles"] = self.selected_blogs["titles"][:MAX_BLOG_LIMIT]
             self.selected_blogs["urls"] = self.selected_blogs["urls"][:MAX_BLOG_LIMIT]
 
-    def __retrieve_overseas_blog(self, page_source: soup) -> dict | None:
-        pass
 
-    def __retrieve_china_blog(self, page_source: soup) -> dict | None:
-        pass
+    def __retrieve_overseas_blog(self) -> dict:
+        blog_container = driver.find_element(By.CLASS_NAME, "main.clearfix")
+        blog_title = blog_container.find_element(By.CLASS_NAME, "Btitle").text
+        blog_meta = blog_container.find_element(By.CLASS_NAME, "wzzy").text
+        blog_content = blog_container.find_element(By.ID, "detailContent").text
         
+        return {
+            "title": blog_title,
+            "meta": blog_meta,
+            "content": blog_content
+        }
+
+
+    def __retrieve_china_blog(self) -> dict:
+        blog_container = driver.find_element(By.CLASS_NAME, "conBox")
+        blog_title_meta_container = blog_container.find_element(By.CLASS_NAME, "conTop")
+        blog_title = blog_title_meta_container.find_element(By.TAG_NAME, "h1").text
+        blog_meta = blog_title_meta_container.find_element(By.CLASS_NAME, "infoBox.clearfix").text
+        blog_content_container = blog_container.find_element(By.CLASS_NAME, "conLeft")
+        blog_content = blog_content_container.find_element(By.ID, "detailContent").text
+
+        return {
+            "title": blog_title,
+            "meta": blog_meta,
+            "content": blog_content
+        }
+
+
     def __get_and_save_blog(self, url: str):
         self.driver.get(url)
         WebDriverWait(self.driver, 10).until(EC.title_contains("Xinhua"))
-
-        page_source = soup(self.driver.page_source)
-        
-        region_code = urllib.parse.urlparse(url).path.split('/')[0]
+        region_code = urllib.parse.urlparse(url).path.split('/')[1]
         if region_code in XINHUA_OVERSEAS_REGIONS:
-            self.__retrieve_overseas_blog(page_source)
+            blog = self.__retrieve_overseas_blog()
         else:
-            self.__retrieve_china_blog(page_source)
+            blog = self.__retrieve_china_blog()
 
-        
+        blog_title = blog.get("title", "")
 
+        file = open(f"./saved_articals/Xinhua_{blog_title}.json", 'w')
+        json.dump(blog, file)
+        file.close()
         self.driver.close()
+
 
     def test(self):
         try:
-            self.__search_topic("ssuck dick")
-            self.__select_blog_in_search_page()
-            self.__get_and_save_blog()
+            # self.__search_topic("food safety")
+            # self.__select_blog_in_search_page()
+            # self.__get_and_save_blog()
+            self.__get_and_save_blog("https://english.news.cn/20240921/0c4426d134e94fb18d4045d53479ca78/c.html")
         except Exception as e:
             import traceback
             print(traceback.format_exc())
             print(e)
-        print(self.selected_blogs)
+        # print(self.selected_blogs)
         self.driver.quit()
 
 
