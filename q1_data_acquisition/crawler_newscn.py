@@ -3,13 +3,16 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import urllib.parse
+import json
 
 BASE_URL = "https://english.news.cn"
+XINHUA_OVERSEAS_REGIONS = ["asiapacific", "europe", "africa", "northamerica"]
 
 # The maximum number of blog posts to crawl
 MAX_BLOG_LIMIT = 10
 
-class Carwler_NewsCN():
+class Crawler_NewsCN():
     def __init__(self, driver: webdriver) -> None:
         self.driver = driver
         self.selected_blogs = {
@@ -37,22 +40,60 @@ class Carwler_NewsCN():
     def __select_blog_in_search_page(self):
         raw_blogs = self.driver.find_element(By.CLASS_NAME, "content").get_attribute("innerHTML")
         raw_blogs = soup(raw_blogs, features="html.parser")
-        raw_blogs = raw_blogs.find("div", class_="items")
+        raw_blogs = raw_blogs.findAll("div", attrs={"class": "item"}, recursive=True)
+
+        if not raw_blogs:
+            return
 
         for raw_blog in raw_blogs:
             title = raw_blog.find('div', class_="title").text.replace('\n', '').replace(' ', '').lower()
+            # prevent crawl duplicate blog from different source
             if not title in self.selected_blogs.get('titles'):
-                self.selected_blogs["title"].append(title)
-                self.selected_blogs["urls"].append(raw_blog.find('a')["herf"])
+                self.selected_blogs["titles"].append(title)
+                self.selected_blogs["urls"].append(raw_blog.find('a')["href"])
+
+        if len(self.selected_blogs["urls"]) < MAX_BLOG_LIMIT:
+            # go to next page
+            next_page_btn = self.driver.find_element(By.CLASS_NAME, "ant-pagination-next")
+            if next_page_btn.get_attribute("aria-disabled") != "true":
+                next_page_btn.click()
+                self.__select_blog_in_search_page()
+        else:
+            self.selected_blogs["titles"] = self.selected_blogs["titles"][:MAX_BLOG_LIMIT]
+            self.selected_blogs["urls"] = self.selected_blogs["urls"][:MAX_BLOG_LIMIT]
+
+    def __retrieve_overseas_blog(self, page_source: soup) -> dict | None:
+        pass
+
+    def __retrieve_china_blog(self, page_source: soup) -> dict | None:
+        pass
+        
+    def __get_and_save_blog(self, url: str):
+        self.driver.get(url)
+        WebDriverWait(self.driver, 10).until(EC.title_contains("Xinhua"))
+
+        page_source = soup(self.driver.page_source)
+        
+        region_code = urllib.parse.urlparse(url).path.split('/')[0]
+        if region_code in XINHUA_OVERSEAS_REGIONS:
+            self.__retrieve_overseas_blog(page_source)
+        else:
+            self.__retrieve_china_blog(page_source)
 
         
 
+        self.driver.close()
+
     def test(self):
         try:
-            self.__search_topic("food safety")
+            self.__search_topic("ssuck dick")
             self.__select_blog_in_search_page()
+            self.__get_and_save_blog()
         except Exception as e:
+            import traceback
+            print(traceback.format_exc())
             print(e)
+        print(self.selected_blogs)
         self.driver.quit()
 
 
@@ -63,9 +104,10 @@ if __name__ == "__main__":
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    # driver = webdriver.Chrome(options=chrome_options)
-    # crawler = Carwler_NewsCN(driver)
-    # crawler.test()
+    driver = webdriver.Chrome(options=chrome_options)
+    crawler = Crawler_NewsCN(driver)
+    crawler.test()
+
 
     markup = '''
 <div class="item">
@@ -97,8 +139,8 @@ if __name__ == "__main__":
  </div>
 </div>'''
 
-    raw_blog = soup(markup, features="html.parser")
-    title = raw_blog.find('div', class_="title").text.replace('\n', '').replace(' ', '').lower()
-    print(title.text.replace('\n', '').replace(' ', '').lower())
+    # raw_blog = soup(markup, features="html.parser")
+    # title = raw_blog.find('div', class_="title").text.replace('\n', '').replace(' ', '').lower()
+    # print(title)
     
     
