@@ -5,6 +5,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import urllib.parse
 import json
+import time
 
 BASE_URL = "https://english.news.cn"
 XINHUA_OVERSEAS_REGIONS = ["asiapacific", "europe", "africa", "northamerica"]
@@ -57,17 +58,23 @@ class Crawler_NewsCN():
         if len(self.selected_blogs["urls"]) < MAX_BLOG_LIMIT:
             # go to next page
             next_page_btn = self.driver.find_element(By.CLASS_NAME, "ant-pagination-next")
-            # if next_page_btn.get_attribute("aria-disabled") != "true":
-            if next_page_btn.is_enabled():
-                next_page_btn.click()
-                self.__select_blog_in_search_page()
+            if next_page_btn.get_attribute("aria-disabled") != "true":
+                try:
+                    next_page_btn.click()
+                    time.sleep(2)
+                    self.__select_blog_in_search_page()
+                except:
+                    import traceback
+                    print(traceback.format_exc())
         else:
             self.selected_blogs["titles"] = self.selected_blogs["titles"][:MAX_BLOG_LIMIT]
             self.selected_blogs["urls"] = self.selected_blogs["urls"][:MAX_BLOG_LIMIT]
 
+        # print(self.selected_blogs["urls"])
+
 
     def __retrieve_overseas_blog(self) -> dict:
-        blog_container = driver.find_element(By.CLASS_NAME, "main.clearfix")
+        blog_container = self.driver.find_element(By.CLASS_NAME, "main.clearfix")
         blog_title = blog_container.find_element(By.CLASS_NAME, "Btitle").text
         blog_meta = blog_container.find_element(By.CLASS_NAME, "wzzy").text
         blog_content = blog_container.find_element(By.ID, "detailContent").text
@@ -80,7 +87,7 @@ class Crawler_NewsCN():
 
 
     def __retrieve_china_blog(self) -> dict:
-        blog_container = driver.find_element(By.CLASS_NAME, "conBox")
+        blog_container = self.driver.find_element(By.CLASS_NAME, "conBox")
         blog_title_meta_container = blog_container.find_element(By.CLASS_NAME, "conTop")
         blog_title = blog_title_meta_container.find_element(By.TAG_NAME, "h1").text
         blog_meta = blog_title_meta_container.find_element(By.CLASS_NAME, "infoBox.clearfix").text
@@ -104,25 +111,33 @@ class Crawler_NewsCN():
             blog = self.__retrieve_china_blog()
 
         blog_title = blog.get("title", "")
-
+        print(blog_title)
         file = open(f"./saved_articals/Xinhua_{blog_title}.json", 'w')
         json.dump(blog, file)
         file.close()
-        self.driver.close()
+        time.sleep(2)
+
+
+    def search_and_save(self, topic: str):
+        self.__search_topic(topic)
+        self.__select_blog_in_search_page()
+        url_list = self.selected_blogs.get("urls", [])
+        for url in url_list:
+            self.__get_and_save_blog(url)
+
+
+    def direct_save(self, url: str):
+        self.__get_and_save_blog(url)
 
 
     def test(self):
         try:
-            # self.__search_topic("food safety")
-            # self.__select_blog_in_search_page()
-            # self.__get_and_save_blog()
-            self.__get_and_save_blog("https://english.news.cn/20240921/0c4426d134e94fb18d4045d53479ca78/c.html")
+            self.search_and_save("china")
         except Exception as e:
             import traceback
             print(traceback.format_exc())
-            print(e)
-        # print(self.selected_blogs)
-        self.driver.quit()
+        finally:
+            self.driver.quit()
 
 
 
@@ -136,39 +151,5 @@ if __name__ == "__main__":
     crawler = Crawler_NewsCN(driver)
     crawler.test()
 
-
-    markup = '''
-<div class="item">
- <div class="title">
-  <a href="https://english.news.cn/asiapacific/20240423/516d81af8f0f47e086876ad6e369d66b/c.html" rel="noreferrer" target="_blank">
-   Indian
-   <font color="red">
-    food
-   </font>
-   <font color="red">
-    safety
-   </font>
-   regulator to check spice quality after Hong Kong, Singapore raise concern
-  </a>
- </div>
- <div class="brief">
-  <div class="text">
-   <div class="abs">
-   </div>
-   <div class="info">
-    <div class="source">
-     亚太分网英文版
-    </div>
-    <div class="pub-tim">
-     2024-04-23 18:45:15
-    </div>
-   </div>
-  </div>
- </div>
-</div>'''
-
-    # raw_blog = soup(markup, features="html.parser")
-    # title = raw_blog.find('div', class_="title").text.replace('\n', '').replace(' ', '').lower()
-    # print(title)
     
     
