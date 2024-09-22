@@ -7,13 +7,12 @@ import urllib.parse
 import json
 import time
 
-BASE_URL = "https://english.news.cn"
-XINHUA_OVERSEAS_REGIONS = ["asiapacific", "europe", "africa", "northamerica"]
+BASE_URL = "https://www.bbc.com/news"
 
 # The maximum number of blog posts to crawl
 MAX_BLOG_LIMIT = 10
 
-class Crawler_NewsCN():
+class Crawler_BBC():
     def __init__(self, driver: webdriver) -> None:
         self.driver = driver
         self.selected_blogs = {
@@ -24,20 +23,20 @@ class Crawler_NewsCN():
 
     def  __search_topic(self, topic: str):
         self.driver.get(BASE_URL)
-        WebDriverWait(self.driver, 10).until(EC.title_contains("Xinhua"))
+        WebDriverWait(self.driver, 10).until(EC.title_contains("BBC"))
 
         # input topic to be searched in search bar
-        search_bar = self.driver.find_element(By.CLASS_NAME, "search-input")
+        search_bar = self.driver.find_element(By.CLASS_NAME, "sc-e1a87ea7-1.iARAvt")
         search_bar.send_keys(topic)
 
         # click search button
-        search_submit_button = self.driver.find_element(By.ID, "searchSubmit")
+        search_submit_button = self.driver.find_element(By.CLASS_NAME, "sc-f6c53a81-2.sc-f6c53a81-3.dyeOnJ.dQfGZm")
         search_submit_button.click()
 
         # close home window and switch to new window
         self.driver.close()
         self.driver.switch_to.window(self.driver.window_handles[0])
-        WebDriverWait(self.driver, 10).until(EC.title_contains("Xinhua research"))
+        WebDriverWait(self.driver, 10).until(EC.title_contains("BBC"))
 
 
     def __select_blog_in_search_page(self):
