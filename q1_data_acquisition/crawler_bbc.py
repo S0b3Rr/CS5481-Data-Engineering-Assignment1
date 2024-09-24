@@ -54,6 +54,7 @@ class Crawler_BBC():
             title = raw_blog.find('h2', attrs={"data-testid": "card-headline"}, recursive=True).text.replace('\n', '').lower()
             # prevent crawl duplicate blog from different source
             if not title in self.selected_blogs.get('titles'):
+                # skip blogs that are not news
                 try:
                     url = raw_blog.find('a', attrs={"data-testid": "internal-link"}, recursive=True)["href"]
                 except Exception:
@@ -71,7 +72,6 @@ class Crawler_BBC():
             # go to next page
             next_page_btn = self.driver.find_element(By.CSS_SELECTOR, "button[data-testid=\"pagination-next-button\"]")
             try:
-                print("@@@@@@@@@@@@@@")
                 next_page_btn.click()
                 time.sleep(2)
                 self.__select_blog_in_search_page()
@@ -81,8 +81,6 @@ class Crawler_BBC():
         else:
             self.selected_blogs["titles"] = self.selected_blogs["titles"][:MAX_BLOG_LIMIT]
             self.selected_blogs["urls"] = self.selected_blogs["urls"][:MAX_BLOG_LIMIT]
-
-        # print(self.selected_blogs["urls"])
 
 
     def __retrieve_blog(self) -> dict:
@@ -155,6 +153,3 @@ if __name__ == "__main__":
     driver = webdriver.Chrome(options=chrome_options)
     crawler = Crawler_BBC(driver)
     crawler.test()
-    # tt = urllib.parse.urlparse("https://www.bbc.com/news/articles/c990e5exlrno")
-    # print(tt)
-    # print(TARGET_URL)
