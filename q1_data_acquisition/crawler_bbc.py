@@ -54,8 +54,14 @@ class Crawler_BBC():
             title = raw_blog.find('h2', attrs={"data-testid": "card-headline"}, recursive=True).text.replace('\n', '').lower()
             # prevent crawl duplicate blog from different source
             if not title in self.selected_blogs.get('titles'):
+                try:
+                    url = raw_blog.find('a', attrs={"data-testid": "internal-link"}, recursive=True)["href"]
+                except Exception:
+                    continue
+                # skip blogs that are not news
+                if not "news" in url:
+                    continue
                 self.selected_blogs["titles"].append(title)
-                url = raw_blog.find('a', attrs={"data-testid": "internal-link"}, recursive=True)["href"]
                 # bbc's href links only contains path 
                 if not urllib.parse.urlparse(url).netloc:
                     url = urllib.parse.urljoin(BASE_URL, url)
@@ -63,16 +69,15 @@ class Crawler_BBC():
 
         if len(self.selected_blogs["urls"]) < MAX_BLOG_LIMIT:
             # go to next page
-            # TODO
-            next_page_btn = self.driver.find_element(By.CLASS_NAME, "ant-pagination-next")
-            if next_page_btn.get_attribute("aria-disabled") != "true":
-                try:
-                    next_page_btn.click()
-                    time.sleep(2)
-                    self.__select_blog_in_search_page()
-                except:
-                    import traceback
-                    print(traceback.format_exc())
+            next_page_btn = self.driver.find_element(By.CSS_SELECTOR, "button[data-testid=\"pagination-next-button\"]")
+            try:
+                print("@@@@@@@@@@@@@@")
+                next_page_btn.click()
+                time.sleep(2)
+                self.__select_blog_in_search_page()
+            except:
+                import traceback
+                print(traceback.format_exc())
         else:
             self.selected_blogs["titles"] = self.selected_blogs["titles"][:MAX_BLOG_LIMIT]
             self.selected_blogs["urls"] = self.selected_blogs["urls"][:MAX_BLOG_LIMIT]
@@ -80,27 +85,21 @@ class Crawler_BBC():
         # print(self.selected_blogs["urls"])
 
 
-    def __retrieve_overseas_blog(self) -> dict:
-        blog_container = self.driver.find_element(By.CLASS_NAME, "main.clearfix")
-        blog_title = blog_container.find_element(By.CLASS_NAME, "Btitle").text
-        blog_meta = blog_container.find_element(By.CLASS_NAME, "wzzy").text
-        blog_content = blog_container.find_element(By.ID, "detailContent").text
+    def __retrieve_blog(self) -> dict:
+        blog_container = self.driver.find_element(By.ID, "main-content")
+        raw_blog = soup(blog_container.get_attribute("innerHTML"), features="html.parser")
+
+        blog_title = raw_blog.find('div', attrs={"data-component": "headline-block"}, recursive=True).text
+        blog_time = raw_blog.find('time', recursive=True).text
+        blog_contributor = raw_blog.find('div', attrs={"data-testid": "byline-new-contributors"}, recursive=True).text
+        blog_meta = {"time": blog_time, "author": blog_contributor}
+        blog_content_blocks = raw_blog.find_all('div', attrs={"data-component": "text-block"}, recursive=True)
+
+        blog_content = ""
+
+        for block in blog_content_blocks:
+            blog_content += block.text
         
-        return {
-            "title": blog_title,
-            "meta": blog_meta,
-            "content": blog_content
-        }
-
-
-    def __retrieve_china_blog(self) -> dict:
-        blog_container = self.driver.find_element(By.CLASS_NAME, "conBox")
-        blog_title_meta_container = blog_container.find_element(By.CLASS_NAME, "conTop")
-        blog_title = blog_title_meta_container.find_element(By.TAG_NAME, "h1").text
-        blog_meta = blog_title_meta_container.find_element(By.CLASS_NAME, "infoBox.clearfix").text
-        blog_content_container = blog_container.find_element(By.CLASS_NAME, "conLeft")
-        blog_content = blog_content_container.find_element(By.ID, "detailContent").text
-
         return {
             "title": blog_title,
             "meta": blog_meta,
@@ -110,16 +109,13 @@ class Crawler_BBC():
 
     def __get_and_save_blog(self, url: str):
         self.driver.get(url)
-        WebDriverWait(self.driver, 10).until(EC.title_contains("Xinhua"))
-        region_code = urllib.parse.urlparse(url).path.split('/')[1]
-        if region_code in []:
-            blog = self.__retrieve_overseas_blog()
-        else:
-            blog = self.__retrieve_china_blog()
+        time.sleep(3)
+        
+        blog = self.__retrieve_blog()
 
         blog_title = blog.get("title", "")
         print(blog_title)
-        file = open(f"./saved_articals/Xinhua_{blog_title}.json", 'w')
+        file = open(f"./saved_articals/BBC_{blog_title}.json", 'w')
         json.dump(blog, file)
         file.close()
         time.sleep(2)
@@ -139,8 +135,9 @@ class Crawler_BBC():
 
     def test(self):
         try:
-            self.__search_topic("test")
-            # self.search_and_save("china")
+            # self.__search_topic("test")
+            # self.search_and_save("test")
+            self.direct_save("https://www.bbc.com/news/articles/c2edewgv2kpo")
         except Exception as e:
             import traceback
             print(traceback.format_exc())
