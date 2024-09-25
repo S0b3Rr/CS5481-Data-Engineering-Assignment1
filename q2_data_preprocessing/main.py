@@ -125,7 +125,7 @@ print("accepted")
 # 10. Create a regex pattern that matches a valid IPv4 address. 
 #     The address must consist of four octets separated by dots,
 #     where each octet is a number between 0 and 255.
-pattern10 = r''
+pattern10 = r'\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\b'
 for case in test_cases.CASES10:
     try:
         assert (re.match(pattern10, case[0]) is not None) is case[1]
