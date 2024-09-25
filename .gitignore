@@ -1,2 +1,3 @@
 venv/
 saved_articals/
+*/__pycache__/
