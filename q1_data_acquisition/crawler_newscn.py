@@ -112,7 +112,7 @@ class Crawler_NewsCN():
 
         blog_title = blog.get("title", "")
         print(blog_title)
-        file = open(f"./saved_articals/Xinhua_{blog_title}.json", 'w')
+        file = open(f"./saved_articles/Xinhua_{blog_title}.json", 'w')
         json.dump(blog, file)
         file.close()
         time.sleep(2)
@@ -133,6 +133,7 @@ class Crawler_NewsCN():
     def test(self):
         try:
             self.search_and_save("china")
+            # self.direct_save("<an url>")
         except Exception as e:
             import traceback
             print(traceback.format_exc())
