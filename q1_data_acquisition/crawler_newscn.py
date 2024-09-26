@@ -11,7 +11,7 @@ BASE_URL = "https://english.news.cn"
 XINHUA_OVERSEAS_REGIONS = ["asiapacific", "europe", "africa", "northamerica"]
 
 # The maximum number of blog posts to crawl
-MAX_BLOG_LIMIT = 10
+MAX_BLOG_LIMIT = 15
 
 class Crawler_NewsCN():
     def __init__(self, driver: webdriver) -> None:

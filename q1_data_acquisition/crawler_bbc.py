@@ -11,7 +11,7 @@ BASE_URL = "https://www.bbc.com"
 TARGET_URL = urllib.parse.urljoin(BASE_URL, "/news")
 
 # The maximum number of blog posts to crawl
-MAX_BLOG_LIMIT = 10
+MAX_BLOG_LIMIT = 15
 
 class Crawler_BBC():
     def __init__(self, driver: webdriver) -> None:
@@ -133,7 +133,7 @@ class Crawler_BBC():
 
     def test(self):
         try:
-            self.search_and_save("test")
+            self.search_and_save("US election")
             # self.direct_save("https://www.bbc.com/news/articles/c2edewgv2kpo")
         except Exception as e:
             import traceback
