@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import urllib.parse
 import json
 import time
+import re
 
 BASE_URL = "https://www.bbc.com"
 TARGET_URL = urllib.parse.urljoin(BASE_URL, "/news")
@@ -113,6 +114,11 @@ class Crawler_BBC():
 
         blog_title = blog.get("title", "")
         print(blog_title)
+
+        # Remove invalid char in file_path_name on Windows
+        invalid_chars_pattern = r'[\\/:*?"<>|]'
+        blog_title = re.sub(invalid_chars_pattern, '', blog_title)
+
         file = open(f"./saved_articles/BBC_{blog_title}.json", 'w')
         json.dump(blog, file)
         file.close()
